@@ -2,11 +2,12 @@ package com.example.ezbooster
 
 import android.content.Context
 import android.media.AudioManager
+import android.media.audiofx.Equalizer
+import android.media.audiofx.BassBoost
 import android.media.audiofx.LoudnessEnhancer
 import android.os.Bundle
 import android.util.Log
 import android.view.MotionEvent
-import android.view.View
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.SeekBar
@@ -19,8 +20,10 @@ class MainActivity : AppCompatActivity() {
 
     private val TAG = "EZBoosterLog"
     private var loudnessEnhancer: LoudnessEnhancer? = null
-    private lateinit var audioManager: AudioManager
+    private var equalizer: Equalizer? = null
+    private var bassBoost: BassBoost? = null
     
+    private lateinit var audioManager: AudioManager
     private lateinit var sbSystemVolume: SeekBar
     private lateinit var circularProgress: CircularProgressIndicator
     private lateinit var tvVolumePercent: TextView
@@ -28,12 +31,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var diskContainer: FrameLayout
 
     private var maxSystemVolume = 15
+    private var activeEqButton: Button? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        Log.d(TAG, "== EZ Booster Запущено ==")
+        Log.d(TAG, "== EZ Booster з Еквалайзером запущено ==")
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         maxSystemVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
@@ -46,19 +50,19 @@ class MainActivity : AppCompatActivity() {
 
         sbSystemVolume.max = maxSystemVolume
         
-        // Ініціалізація нативного підсилювача звуку
+        // Ініціалізація аудіо-рушіїв
         try {
             loudnessEnhancer = LoudnessEnhancer(0)
-            Log.d(TAG, "LoudnessEnhancer успішно ініціалізовано.")
+            equalizer = Equalizer(0, 0).apply { enabled = true }
+            bassBoost = BassBoost(0, 0).apply { enabled = true }
+            Log.d(TAG, "Усі аудіо-ефекти (Booster, EQ, Bass) успішно підключені.")
         } catch (e: Exception) {
-            Log.e(TAG, "Помилка аудіо-двигуна: ${e.message}")
+            Log.e(TAG, "Помилка ініціалізації аудіо-ефектів: ${e.message}")
         }
 
-        // Оновлюємо початковий стан під поточний звук системи
         val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         updateAllComponents((currentVol.toFloat() / maxSystemVolume * 100).toInt(), false)
 
-        // Обробка класичного повзунка системи
         sbSystemVolume.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
@@ -70,33 +74,25 @@ class MainActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // Робимо диск інтерактивною крутилкою за допомогою жестів
         setupRotationGesture()
-
-        // Кнопки швидкого вибору
         setupPresetButtons()
+        setupEqualizerButtons()
     }
 
     private fun setupRotationGesture() {
         diskContainer.setOnTouchListener { view, event ->
             val centerX = view.width / 2f
             val centerY = view.height / 2f
-            
             val x = event.x - centerX
             val y = event.y - centerY
 
             when (event.action) {
                 MotionEvent.ACTION_MOVE, MotionEvent.ACTION_DOWN -> {
-                    // Рахуємо кут дотику в радіанах, переводимо в градуси (від -180 до 180)
                     var angle = Math.toDegrees(atan2(y.toDouble(), x.toDouble()).toDouble()).toFloat()
-                    
-                    // Зсуваємо кут так, щоб 0 градусів було знизу
                     angle += 90
                     if (angle < 0) angle += 360
 
-                    // Переводимо 360 градусів у шкалу від 0% до 200% гучності
                     val targetPercent = ((angle / 360f) * 200).toInt()
-                    
                     if (targetPercent in 0..200) {
                         updateAllComponents(targetPercent, true)
                     }
@@ -112,28 +108,23 @@ class MainActivity : AppCompatActivity() {
         if (pct < 0) pct = 0
         if (pct > 200) pct = 200
 
-        // 1. Оновлюємо графіку крутилки
         circularProgress.progress = pct
         tvVolumePercent.text = "$pct%"
 
-        // 2. Розраховуємо гучність системи та буст
         if (pct <= 100) {
-            // Стандартний режим: міняємо звичайний звук пристрою
             val sysVol = (pct.toFloat() / 100 * maxSystemVolume).toInt()
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, sysVol, 0)
             if (!fromDisk) sbSystemVolume.progress = sysVol
             
-            // Вимикаємо буст
             setNativeBoost(0)
             tvStatusLabel.text = "STANDARD"
             tvStatusLabel.setTextColor(android.graphics.Color.parseColor("#888599"))
             circularProgress.setIndicatorColor(android.graphics.Color.parseColor("#00F2FE"))
         } else {
-            // Режим Бустера (101% - 200%): звук системи на максимум + викручуємо дБ
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxSystemVolume, 0)
             sbSystemVolume.progress = maxSystemVolume
             
-            // Розрахунок посилення: кожні 1% понад сотню додають 45mB (Макс +4500 mB = дуже гучно!)
+            // Наш безпечний ліміт пом'якшеного бусту
             val boostValue = (pct - 100) * 15
             setNativeBoost(boostValue)
             
@@ -145,16 +136,80 @@ class MainActivity : AppCompatActivity() {
 
     private fun setNativeBoost(boostmB: Int) {
         try {
-            loudnessEnhancer?.let { enhancer ->
+            loudnessEnhancer?.let {
                 if (boostmB > 0) {
-                    enhancer.setTargetGain(boostmB)
-                    enhancer.enabled = true
+                    it.setTargetGain(boostmB)
+                    it.enabled = true
                 } else {
-                    enhancer.enabled = false
+                    it.enabled = false
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Не вдалося змінити буст: ${e.message}")
+            Log.e(TAG, "Не вдалося застосувати буст: ${e.message}")
+        }
+    }
+
+    private fun setupEqualizerButtons() {
+        val btnNormal = findViewById<Button>(R.id.btnEqNormal)
+        val btnBass = findViewById<Button>(R.id.btnEqBass)
+        val btnRock = findViewById<Button>(R.id.btnEqRock)
+        val btnVoice = findViewById<Button>(R.id.btnEqVoice)
+
+        activeEqButton = btnNormal
+
+        btnNormal.setOnClickListener { applyPreset(btnNormal, "normal") }
+        btnBass.setOnClickListener { applyPreset(btnBass, "bass") }
+        btnRock.setOnClickListener { applyPreset(btnRock, "rock") }
+        btnVoice.setOnClickListener { applyPreset(btnVoice, "voice") }
+    }
+
+    private fun applyPreset(clickedButton: Button, preset: String) {
+        Log.d(TAG, "Перемикання еквалайзера на пресет: $preset")
+        
+        // Візуальний фокус на активній кнопці
+        activeEqButton?.setTextColor(android.graphics.Color.parseColor("#FFFFFF"))
+        clickedButton.setTextColor(android.graphics.Color.parseColor("#00F2FE"))
+        activeEqButton = clickedButton
+
+        try {
+            val eq = equalizer ?: return
+            val bass = bassBoost ?: return
+
+            // Вимикаємо супер-бас за замовчуванням
+            bass.setRoundedStrength(0)
+
+            when (preset) {
+                "normal" -> {
+                    // Скидаємо всі смуги частот в 0
+                    for (i in 0 until eq.numberOfBands) {
+                        eq.setBandLevel(i.toShort(), 0)
+                    }
+                }
+                "bass" -> {
+                    // Робимо акцент на низьких частотах + вмикаємо hardware BassBoost
+                    if (eq.numberOfBands > 0) eq.setBandLevel(0, 800) // 60Hz
+                    if (eq.numberOfBands > 1) eq.setBandLevel(1, 600) // 230Hz
+                    bass.setRoundedStrength(1000) // Максимальний нативний бас
+                }
+                "rock" -> {
+                    // Класична W-подібна крива (високі й низькі вгору, середина трохи вниз)
+                    if (eq.numberOfBands > 0) eq.setBandLevel(0, 600)
+                    if (eq.numberOfBands > 1) eq.setBandLevel(1, 300)
+                    if (eq.numberOfBands > 2) eq.setBandLevel(2, -200)
+                    if (eq.numberOfBands > 3) eq.setBandLevel(3, 400)
+                    if (eq.numberOfBands > 4) eq.setBandLevel(4, 700)
+                }
+                "voice" -> {
+                    // Зрізаємо низькі частоти, піднімаємо середні частоти мови (1кГц - 4кГц)
+                    if (eq.numberOfBands > 0) eq.setBandLevel(0, -600)
+                    if (eq.numberOfBands > 1) eq.setBandLevel(1, -200)
+                    if (eq.numberOfBands > 2) eq.setBandLevel(2, 800)
+                    if (eq.numberOfBands > 3) eq.setBandLevel(3, 600)
+                }
+            }
+            Log.d(TAG, "Пресет успішно застосовано!")
+        } catch (e: Exception) {
+            Log.e(TAG, "Помилка застосування еквалайзера: ${e.message}")
         }
     }
 
@@ -168,11 +223,11 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         try {
-            loudnessEnhancer?.enabled = false
             loudnessEnhancer?.release()
-            loudnessEnhancer = null
+            equalizer?.release()
+            bassBoost?.release()
         } catch (e: Exception) {
-            Log.e(TAG, "Помилка очищення пам'яті: ${e.message}")
+            Log.e(TAG, "Помилка очищення ефектів: ${e.message}")
         }
     }
 }

@@ -15,32 +15,30 @@
         android:textSize="26sp"
         android:textStyle="bold"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="10dp"
         android:letterSpacing="0.2" />
 
-    <!-- Головна Крутилка (Круговий слайдер) -->
+    <!-- Головна Крутилка -->
     <FrameLayout
         android:id="@+id/diskContainer"
-        android:layout_width="280dp"
-        android:layout_height="280dp"
+        android:layout_width="260dp"
+        android:layout_height="260dp"
         android:layout_centerInParent="true"
         android:background="@drawable/disk_background"
         android:padding="20dp">
 
-        <!-- Свічення прогресу крутилки -->
         <com.google.android.material.progressindicator.CircularProgressIndicator
             android:id="@+id/circularProgress"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center"
-            app:indicatorSize="240dp"
+            app:indicatorSize="220dp"
             app:trackThickness="16dp"
             app:trackColor="#251F3D"
-            app:indicatorColor="#FF007F"
+            app:indicatorColor="#00F2FE"
             android:max="200"
             android:progress="100" />
 
-        <!-- Текст з відсотками всередині -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -54,7 +52,7 @@
                 android:layout_height="wrap_content"
                 android:text="100%"
                 android:textColor="#FFFFFF"
-                android:textSize="48sp"
+                android:textSize="44sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -69,13 +67,29 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- Системний повзунок (Знизу крутилки) -->
+    <!-- БЛОК ЕКВАЛАЙЗЕРА (Режими звуку) -->
+    <LinearLayout
+        android:id="@+id/eqContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/diskContainer"
+        android:layout_marginTop="20dp"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button android:id="@+id/btnEqNormal" android:text="Normal" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#00F2FE" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" />
+        <Button android:id="@+id/btnEqBass" android:text="BASS" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" />
+        <Button android:id="@+id/btnEqRock" android:text="ROCK" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" />
+        <Button android:id="@+id/btnEqVoice" android:text="VOICE" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Системний повзунок -->
     <LinearLayout
         android:id="@+id/volumeContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_above="@id/buttonsGrid"
-        android:layout_marginBottom="40dp"
+        android:layout_marginBottom="25dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
         
@@ -94,20 +108,19 @@
             android:progressTint="#00F2FE" />
     </LinearLayout>
 
-    <!-- Кнопки швидкого пресету -->
+    <!-- Кнопки пресетів гучності -->
     <GridLayout
         android:id="@+id/buttonsGrid"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_marginBottom="10dp"
-        android:columnCount="4"
-        android:alignmentMode="alignBounds">
+        android:layout_marginBottom="5dp"
+        android:columnCount="4">
 
-        <Button android:id="@+id/btnMute" android:text="Mute" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="60dp" />
-        <Button android:id="@+id/btn30" android:text="30%" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="60dp" />
-        <Button android:id="@+id/btn100" android:text="100%" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="60dp" />
-        <Button android:id="@+id/btnMax" android:text="MAX" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FF007F" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="60dp" android:textStyle="bold" />
+        <Button android:id="@+id/btnMute" android:text="Mute" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="50dp" />
+        <Button android:id="@+id/btn30" android:text="30%" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="50dp" />
+        <Button android:id="@+id/btn100" android:text="100%" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="50dp" />
+        <Button android:id="@+id/btnMax" android:text="MAX" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FF007F" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="50dp" android:textStyle="bold" />
     </GridLayout>
 
 </RelativeLayout>
