@@ -33,12 +33,13 @@ class MainActivity : AppCompatActivity() {
     private var maxSystemVolume = 15
     private var activeEqButton: Button? = null
     private var currentPreset = "normal"
+    private var lastPercent = 100
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        Log.d(TAG, "== EZ Booster: Оновлення гучності запущено ==")
+        Log.d(TAG, "== EZ Booster: Запуск системи фокусу звуку ==")
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         maxSystemVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
@@ -51,16 +52,8 @@ class MainActivity : AppCompatActivity() {
 
         sbSystemVolume.max = maxSystemVolume
         
-        try {
-            loudnessEnhancer = LoudnessEnhancer(0)
-            equalizer = Equalizer(0, 0).apply { enabled = true }
-            bassBoost = BassBoost(0, 0).apply { enabled = true }
-            Log.d(TAG, "Ефекти підключено.")
-        } catch (e: Exception) {
-            Log.e(TAG, "Помилка ефектів: ${e.message}")
-        }
+        initAudioEffects()
 
-        // Встановлюємо початковий звук
         val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         updateAllComponents((currentVol.toFloat() / maxSystemVolume * 100).toInt(), false)
 
@@ -79,8 +72,41 @@ class MainActivity : AppCompatActivity() {
         setupPresetButtons()
         setupEqualizerButtons()
         
-        // Автоматично застосовуємо нормальний режим для стабілізації початкового рівня
         findViewById<Button>(R.id.btnEqNormal).performClick()
+    }
+
+    private fun initAudioEffects() {
+        try {
+            // Звільняємо старі ресурси, якщо вони були
+            releaseAudioEffects()
+
+            loudnessEnhancer = LoudnessEnhancer(0).apply { enabled = true }
+            equalizer = Equalizer(0, 0).apply { enabled = true }
+            bassBoost = BassBoost(0, 0).apply { enabled = true }
+            Log.d(TAG, "Нативні ефекти успішно ініціалізовані для сесії 0.")
+        } catch (e: Exception) {
+            Log.e(TAG, "Помилка ініціалізації ефектів: ${e.message}")
+        }
+    }
+
+    private fun releaseAudioEffects() {
+        try {
+            loudnessEnhancer?.release(); loudnessEnhancer = null
+            equalizer?.release(); equalizer = null
+            bassBoost?.release(); bassBoost = null
+        } catch (e: Exception) {
+            Log.e(TAG, "Помилка звільнення ефектів: ${e.message}")
+        }
+    }
+
+    private fun triggerAudioRoutingUpdate() {
+        // Хак: робимо мікро-запит фокусу аудіо без призупинення іншої музики (AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+        // Це змушує аудіо-сервер Android перерахувати підключені ефекти сесії 0 прямо під час відтворення
+        audioManager.requestAudioFocus(
+            { }, 
+            AudioManager.STREAM_MUSIC, 
+            AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
+        )
     }
 
     private fun setupRotationGesture() {
@@ -91,7 +117,12 @@ class MainActivity : AppCompatActivity() {
             val y = event.y - centerY
 
             when (event.action) {
-                MotionEvent.ACTION_MOVE, MotionEvent.ACTION_DOWN -> {
+                MotionEvent.ACTION_DOWN -> {
+                    // При першому дотику примусово «пінгуємо» аудіосистему
+                    triggerAudioRoutingUpdate()
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
                     var angle = Math.toDegrees(atan2(y.toDouble(), x.toDouble()).toDouble()).toFloat()
                     angle += 90
                     if (angle < 0) angle += 360
@@ -108,6 +139,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateAllComponents(percent: Int, fromDisk: Boolean) {
+        lastPercent = percent
         var pct = percent
         if (pct < 0) pct = 0
         if (pct > 200) pct = 200
@@ -115,12 +147,14 @@ class MainActivity : AppCompatActivity() {
         circularProgress.progress = pct
         tvVolumePercent.text = "$pct%"
 
+        // Перевіряємо працездатність ефектів. Якщо вони «злетіли» у фоні — перевизначаємо
+        if (loudnessEnhancer == null) initAudioEffects()
+
         if (pct <= 100) {
             val sysVol = (pct.toFloat() / 100 * maxSystemVolume).toInt()
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, sysVol, 0)
             if (!fromDisk) sbSystemVolume.progress = sysVol
             
-            // Базова компенсація: даємо +800 mB, щоб перекрити просідання від еквалайзера
             setNativeBoost(800)
             
             tvStatusLabel.text = "STANDARD"
@@ -130,7 +164,6 @@ class MainActivity : AppCompatActivity() {
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxSystemVolume, 0)
             sbSystemVolume.progress = maxSystemVolume
             
-            // Додаємо прогрес крутилки до базової компенсації (+800 mB + крок)
             val boostValue = 800 + ((pct - 100) * 15)
             setNativeBoost(boostValue)
             
@@ -145,13 +178,15 @@ class MainActivity : AppCompatActivity() {
             loudnessEnhancer?.let {
                 if (boostmB > 0) {
                     it.setTargetGain(boostmB)
-                    it.enabled = true
+                    if (!it.enabled) it.enabled = true
                 } else {
                     it.enabled = false
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Не вдалося змінити буст: ${e.message}")
+            // Якщо вилетів ексЕпшн (сесія закрилася системою), пробуємо підняти заново
+            initAudioEffects()
         }
     }
 
@@ -175,6 +210,9 @@ class MainActivity : AppCompatActivity() {
         clickedButton.setTextColor(android.graphics.Color.parseColor("#00F2FE"))
         activeEqButton = clickedButton
 
+        triggerAudioRoutingUpdate()
+        if (equalizer == null) initAudioEffects()
+
         try {
             val eq = equalizer ?: return
             val bass = bassBoost ?: return
@@ -183,7 +221,6 @@ class MainActivity : AppCompatActivity() {
 
             when (preset) {
                 "normal" -> {
-                    // Замість нуля ставимо невеликий плюс (+200), щоб підняти загальну гучність потоку
                     for (i in 0 until eq.numberOfBands) {
                         eq.setBandLevel(i.toShort(), 200)
                     }
@@ -222,12 +259,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            loudnessEnhancer?.release()
-            equalizer?.release()
-            bassBoost?.release()
-        } catch (e: Exception) {
-            Log.e(TAG, "Помилка очищення: ${e.message}")
-        }
+        releaseAudioEffects()
     }
 }
