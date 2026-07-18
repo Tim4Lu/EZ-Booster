@@ -32,12 +32,13 @@ class MainActivity : AppCompatActivity() {
 
     private var maxSystemVolume = 15
     private var activeEqButton: Button? = null
+    private var currentPreset = "normal"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        Log.d(TAG, "== EZ Booster з Еквалайзером запущено ==")
+        Log.d(TAG, "== EZ Booster: Оновлення гучності запущено ==")
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         maxSystemVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
@@ -50,16 +51,16 @@ class MainActivity : AppCompatActivity() {
 
         sbSystemVolume.max = maxSystemVolume
         
-        // Ініціалізація аудіо-рушіїв
         try {
             loudnessEnhancer = LoudnessEnhancer(0)
             equalizer = Equalizer(0, 0).apply { enabled = true }
             bassBoost = BassBoost(0, 0).apply { enabled = true }
-            Log.d(TAG, "Усі аудіо-ефекти (Booster, EQ, Bass) успішно підключені.")
+            Log.d(TAG, "Ефекти підключено.")
         } catch (e: Exception) {
-            Log.e(TAG, "Помилка ініціалізації аудіо-ефектів: ${e.message}")
+            Log.e(TAG, "Помилка ефектів: ${e.message}")
         }
 
+        // Встановлюємо початковий звук
         val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         updateAllComponents((currentVol.toFloat() / maxSystemVolume * 100).toInt(), false)
 
@@ -77,6 +78,9 @@ class MainActivity : AppCompatActivity() {
         setupRotationGesture()
         setupPresetButtons()
         setupEqualizerButtons()
+        
+        // Автоматично застосовуємо нормальний режим для стабілізації початкового рівня
+        findViewById<Button>(R.id.btnEqNormal).performClick()
     }
 
     private fun setupRotationGesture() {
@@ -116,7 +120,9 @@ class MainActivity : AppCompatActivity() {
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, sysVol, 0)
             if (!fromDisk) sbSystemVolume.progress = sysVol
             
-            setNativeBoost(0)
+            // Базова компенсація: даємо +800 mB, щоб перекрити просідання від еквалайзера
+            setNativeBoost(800)
+            
             tvStatusLabel.text = "STANDARD"
             tvStatusLabel.setTextColor(android.graphics.Color.parseColor("#888599"))
             circularProgress.setIndicatorColor(android.graphics.Color.parseColor("#00F2FE"))
@@ -124,8 +130,8 @@ class MainActivity : AppCompatActivity() {
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxSystemVolume, 0)
             sbSystemVolume.progress = maxSystemVolume
             
-            // Наш безпечний ліміт пом'якшеного бусту
-            val boostValue = (pct - 100) * 15
+            // Додаємо прогрес крутилки до базової компенсації (+800 mB + крок)
+            val boostValue = 800 + ((pct - 100) * 15)
             setNativeBoost(boostValue)
             
             tvStatusLabel.text = "BOOST ACTIVE"
@@ -145,7 +151,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Не вдалося застосувати буст: ${e.message}")
+            Log.e(TAG, "Не вдалося змінити буст: ${e.message}")
         }
     }
 
@@ -164,9 +170,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyPreset(clickedButton: Button, preset: String) {
-        Log.d(TAG, "Перемикання еквалайзера на пресет: $preset")
-        
-        // Візуальний фокус на активній кнопці
+        currentPreset = preset
         activeEqButton?.setTextColor(android.graphics.Color.parseColor("#FFFFFF"))
         clickedButton.setTextColor(android.graphics.Color.parseColor("#00F2FE"))
         activeEqButton = clickedButton
@@ -175,41 +179,37 @@ class MainActivity : AppCompatActivity() {
             val eq = equalizer ?: return
             val bass = bassBoost ?: return
 
-            // Вимикаємо супер-бас за замовчуванням
             bass.setStrength(0.toShort())
 
             when (preset) {
                 "normal" -> {
-                    // Скидаємо всі смуги частот в 0
+                    // Замість нуля ставимо невеликий плюс (+200), щоб підняти загальну гучність потоку
                     for (i in 0 until eq.numberOfBands) {
-                        eq.setBandLevel(i.toShort(), 0)
+                        eq.setBandLevel(i.toShort(), 200)
                     }
                 }
                 "bass" -> {
-                    // Робимо акцент на низьких частотах + вмикаємо hardware BassBoost
-                    if (eq.numberOfBands > 0) eq.setBandLevel(0, 800) // 60Hz
-                    if (eq.numberOfBands > 1) eq.setBandLevel(1, 600) // 230Hz
-                    bass.setStrength(1000.toShort()) // Максимальний нативний бас
+                    if (eq.numberOfBands > 0) eq.setBandLevel(0, 900)
+                    if (eq.numberOfBands > 1) eq.setBandLevel(1, 700)
+                    if (eq.numberOfBands > 2) eq.setBandLevel(2, 200)
+                    bass.setStrength(1000.toShort())
                 }
                 "rock" -> {
-                    // Класична W-подібна крива (високі й низькі вгору, середина трохи вниз)
-                    if (eq.numberOfBands > 0) eq.setBandLevel(0, 600)
-                    if (eq.numberOfBands > 1) eq.setBandLevel(1, 300)
-                    if (eq.numberOfBands > 2) eq.setBandLevel(2, -200)
-                    if (eq.numberOfBands > 3) eq.setBandLevel(3, 400)
-                    if (eq.numberOfBands > 4) eq.setBandLevel(4, 700)
+                    if (eq.numberOfBands > 0) eq.setBandLevel(0, 700)
+                    if (eq.numberOfBands > 1) eq.setBandLevel(1, 400)
+                    if (eq.numberOfBands > 2) eq.setBandLevel(2, 100)
+                    if (eq.numberOfBands > 3) eq.setBandLevel(3, 500)
+                    if (eq.numberOfBands > 4) eq.setBandLevel(4, 800)
                 }
                 "voice" -> {
-                    // Зрізаємо низькі частоти, піднімаємо середні частоти мови (1кГц - 4кГц)
-                    if (eq.numberOfBands > 0) eq.setBandLevel(0, -600)
-                    if (eq.numberOfBands > 1) eq.setBandLevel(1, -200)
-                    if (eq.numberOfBands > 2) eq.setBandLevel(2, 800)
-                    if (eq.numberOfBands > 3) eq.setBandLevel(3, 600)
+                    if (eq.numberOfBands > 0) eq.setBandLevel(0, -200)
+                    if (eq.numberOfBands > 1) eq.setBandLevel(1, 100)
+                    if (eq.numberOfBands > 2) eq.setBandLevel(2, 900)
+                    if (eq.numberOfBands > 3) eq.setBandLevel(3, 700)
                 }
             }
-            Log.d(TAG, "Пресет успішно застосовано!")
         } catch (e: Exception) {
-            Log.e(TAG, "Помилка застосування еквалайзера: ${e.message}")
+            Log.e(TAG, "Помилка еквалайзера: ${e.message}")
         }
     }
 
@@ -227,7 +227,7 @@ class MainActivity : AppCompatActivity() {
             equalizer?.release()
             bassBoost?.release()
         } catch (e: Exception) {
-            Log.e(TAG, "Помилка очищення ефектів: ${e.message}")
+            Log.e(TAG, "Помилка очищення: ${e.message}")
         }
     }
 }
