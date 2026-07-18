@@ -25,8 +25,8 @@ class MainActivity : AppCompatActivity() {
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         sbSystemVolume = findViewById(R.id.sbSystemVolume)
 
-        // Ініціалізація бустера на нульовій сесії (глобальний звук)
         try {
+            // Намагаємося підключитися до глобального аудіопотоку
             loudnessEnhancer = LoudnessEnhancer(0)
             Log.d(TAG, "LoudnessEnhancer успішно підключено до сесії 0")
         } catch (e: Exception) {
@@ -54,38 +54,36 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupButtons(maxSystemVol: Int) {
         Log.d(TAG, "Прив'язка кнопок керування")
-        
+
         findViewById<Button>(R.id.btnMute).setOnClickListener { setVolumeAndBoost(0, 0) }
         findViewById<Button>(R.id.btn30).setOnClickListener { setVolumeAndBoost((maxSystemVol * 0.3).toInt(), 0) }
         findViewById<Button>(R.id.btn60).setOnClickListener { setVolumeAndBoost((maxSystemVol * 0.6).toInt(), 0) }
         findViewById<Button>(R.id.btn100).setOnClickListener { setVolumeAndBoost(maxSystemVol, 0) }
 
-        // Безпечні ліміти бусту: 100, 200, 300 та 400 mB
-        findViewById<Button>(R.id.btn125).setOnClickListener { setVolumeAndBoost(maxSystemVol, 100) }
-        findViewById<Button>(R.id.btn150).setOnClickListener { setVolumeAndBoost(maxSystemVol, 200) }
-        findViewById<Button>(R.id.btn175).setOnClickListener { setVolumeAndBoost(maxSystemVol, 300) }
-        findViewById<Button>(R.id.btnMax).setOnClickListener { setVolumeAndBoost(maxSystemVol, 400) }
+        // Відчутні рівні бусту в mB (2000 mB = +2дБ, 4000 mB = +4дБ і т.д.)
+        findViewById<Button>(R.id.btn125).setOnClickListener { setVolumeAndBoost(maxSystemVol, 1500) }
+        findViewById<Button>(R.id.btn150).setOnClickListener { setVolumeAndBoost(maxSystemVol, 3000) }
+        findViewById<Button>(R.id.btn175).setOnClickListener { setVolumeAndBoost(maxSystemVol, 4500) }
+        findViewById<Button>(R.id.btnMax).setOnClickListener { setVolumeAndBoost(maxSystemVol, 6000) }
     }
 
     private fun setVolumeAndBoost(systemVolume: Int, boostmB: Int) {
         Log.d(TAG, "Запит на зміну: Гучність системи=$systemVolume, Буст=$boostmB mB")
 
-        // 1. Змінюємо системний звук
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, systemVolume, 0)
         sbSystemVolume.progress = systemVolume
 
-        // 2. Вмикаємо або вимикаємо нативне посилення
         try {
             loudnessEnhancer?.let { enhancer ->
                 if (boostmB > 0) {
                     enhancer.setTargetGain(boostmB)
                     enhancer.enabled = true
-                    Log.d(TAG, "=> Буст АКТИВОВАНО: +$boostmB mB")
+                    Log.d(TAG, "=> Буст АКТИВОВАНО: +$boostmB mB (Поточний статус: ${enhancer.enabled})")
                 } else {
                     enhancer.enabled = false
                     Log.d(TAG, "=> Буст ВИМКНЕНО (Стандартний звук)")
                 }
-            }
+            } ?: Log.e(TAG, "Не вдалося застосувати ефект: loudnessEnhancer є null!")
         } catch (e: Exception) {
             Log.e(TAG, "Помилка при застосуванні бусту: ${e.message}")
         }
