@@ -107,7 +107,7 @@
         <Button android:id="@+id/btnMute" android:text="Mute" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="60dp" />
         <Button android:id="@+id/btn30" android:text="30%" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="60dp" />
         <Button android:id="@+id/btn100" android:text="100%" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="60dp" />
-        <Button android:id="@+id/btnMax" android:text="MAX" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FF007F" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="60dp" style="@textStyle/bold" />
+        <Button android:id="@+id/btnMax" android:text="MAX" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FF007F" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="60dp" android:textStyle="bold" />
     </GridLayout>
 
 </RelativeLayout>
