@@ -134,7 +134,7 @@ class MainActivity : AppCompatActivity() {
             sbSystemVolume.progress = maxSystemVolume
             
             // Розрахунок посилення: кожні 1% понад сотню додають 45mB (Макс +4500 mB = дуже гучно!)
-            val boostValue = (pct - 100) * 45
+            val boostValue = (pct - 100) * 15
             setNativeBoost(boostValue)
             
             tvStatusLabel.text = "BOOST ACTIVE"
