@@ -3,17 +3,21 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    
+    <!-- Неонова рожева блискавка -->
     <path
         android:fillColor="#FF007F"
-        android:pathData="M30,39 L18,39 L18,69 L30,69 L54,87 L54,21 L30,39 Z" />
+        android:pathData="M 68 30 L 52 58 L 65 58 L 55 88 L 82 48 L 68 48 Z" />
+        
+    <!-- Блакитний динамік -->
+    <path
+        android:fillColor="#00F2FE"
+        android:pathData="M 38 42 L 22 42 C 20.9 42 20 42.9 20 44 L 20 64 C 20 65.1 20.9 66 22 66 L 38 66 L 52 78 C 53.6 79.3 56 78.2 56 76 L 56 32 C 56 29.8 53.6 28.7 52 30 L 38 42 Z" />
+        
+    <!-- Звукові хвилі (Опціонально) -->
     <path
         android:strokeColor="#00F2FE"
-        android:strokeWidth="4"
+        android:strokeWidth="3"
         android:strokeLineCap="round"
-        android:pathData="M66,39 C72,48 72,60 66,69" />
-    <path
-        android:strokeColor="#00F2FE"
-        android:strokeWidth="4"
-        android:strokeLineCap="round"
-        android:pathData="M78,27 C88,42 88,66 78,81" />
+        android:pathData="M 88 38 C 94 48 94 60 88 70" />
 </vector>
