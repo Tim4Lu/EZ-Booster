@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#110E1C"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/tvAppName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="EZ Booster"
+        android:textColor="#FFFFFF"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:layout_marginTop="10dp" />
+
+    <FrameLayout
+        android:id="@+id/diskContainer"
+        android:layout_width="260dp"
+        android:layout_height="260dp"
+        android:layout_centerInParent="true"
+        android:background="@android:drawable/dialog_holo_dark_frame">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="POWER"
+            android:textColor="#888599"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/volumeContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/buttonsGrid"
+        android:layout_marginBottom="30dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@android:drawable/ic_lock_silent_mode_off" />
+        <SeekBar
+            android:id="@+id/sbSystemVolume"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:progressDrawable="@android:drawable/progress_horizontal" />
+    </LinearLayout>
+
+    <GridLayout
+        android:id="@+id/buttonsGrid"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="20dp"
+        android:columnCount="4"
+        android:rowCount="2">
+
+        <Button android:id="@+id/btnMute" android:text="Mute" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="80dp" android:layout_height="80dp" />
+        <Button android:id="@+id/btn30" android:text="30%" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="80dp" android:layout_height="80dp" />
+        <Button android:id="@+id/btn60" android:text="60%" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="80dp" android:layout_height="80dp" />
+        <Button android:id="@+id/btn100" android:text="100%" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FFF" android:layout_width="80dp" android:layout_height="80dp" />
+
+        <Button android:id="@+id/btn125" android:text="125%" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FF007F" android:layout_width="80dp" android:layout_height="80dp" />
+        <Button android:id="@+id/btn150" android:text="150%" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FF007F" android:layout_width="80dp" android:layout_height="80dp" />
+        <Button android:id="@+id/btn175" android:text="175%" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FF007F" android:layout_width="80dp" android:layout_height="80dp" />
+        <Button android:id="@+id/btnMax" android:text="Max" style="@style/Widget.AppCompat.Button.Borderless" android:textColor="#FF007F" android:layout_width="80dp" android:layout_height="80dp" />
+    </GridLayout>
+</RelativeLayout>
