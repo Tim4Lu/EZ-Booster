@@ -176,7 +176,7 @@ class MainActivity : AppCompatActivity() {
             val bass = bassBoost ?: return
 
             // Вимикаємо супер-бас за замовчуванням
-            bass.setRoundedStrength(0)
+            bass.setStrength(0.toShort())
 
             when (preset) {
                 "normal" -> {
@@ -189,7 +189,7 @@ class MainActivity : AppCompatActivity() {
                     // Робимо акцент на низьких частотах + вмикаємо hardware BassBoost
                     if (eq.numberOfBands > 0) eq.setBandLevel(0, 800) // 60Hz
                     if (eq.numberOfBands > 1) eq.setBandLevel(1, 600) // 230Hz
-                    bass.setRoundedStrength(1000) // Максимальний нативний бас
+                    bass.setStrength(1000.toShort()) // Максимальний нативний бас
                 }
                 "rock" -> {
                     // Класична W-подібна крива (високі й низькі вгору, середина трохи вниз)
