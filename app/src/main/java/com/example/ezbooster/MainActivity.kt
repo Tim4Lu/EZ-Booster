@@ -78,7 +78,7 @@ class MainActivity : AppCompatActivity() {
         try {
             loudnessEnhancer?.let { enhancer ->
                 if (boostmB > 0) {
-                    enhancer.targetGain = boostmB
+                    enhancer.setTargetGain(boostmB)
                     enhancer.enabled = true
                     Log.d(TAG, "=> Буст АКТИВОВАНО: +$boostmB mB")
                 } else {
